@@ -6,16 +6,76 @@ export const Route = createFileRoute("/deliver")({
   component: DeliverPage,
 });
 
-type FrameId = "classic" | "noir" | "hearts" | "stars";
+type FrameId =
+  "classic" | "noir" | "valentine" | "newyear" | "formula1" | "disney" | "stardust" | "summer";
 
-const FRAME_META: Record<
-  FrameId,
-  { bg: string; border: string; accent: string; decor: "hearts" | "stars" | "none" }
-> = {
-  classic: { bg: "#ffffff", border: "#111111", accent: "#111111", decor: "none" },
-  noir: { bg: "#0a0a0a", border: "#0a0a0a", accent: "#f5f5f5", decor: "stars" },
-  hearts: { bg: "#fbdce4", border: "#8a1f3a", accent: "#8a1f3a", decor: "hearts" },
-  stars: { bg: "#111028", border: "#111028", accent: "#f6c453", decor: "stars" },
+type DecorType = "none" | "hearts" | "confetti" | "checker" | "mickey" | "stars" | "palms";
+
+type FrameMeta = {
+  bg: string;
+  border: string;
+  accent: string;
+  caption: string;
+  decor: DecorType;
+};
+
+const FRAME_META: Record<FrameId, FrameMeta> = {
+  classic: {
+    bg: "#ffffff",
+    border: "#111111",
+    accent: "#111111",
+    caption: "Photo Booth",
+    decor: "none",
+  },
+  noir: {
+    bg: "#0a0a0a",
+    border: "#0a0a0a",
+    accent: "#f5f5f5",
+    caption: "Midnight Memories",
+    decor: "stars",
+  },
+  valentine: {
+    bg: "#fde2e7",
+    border: "#9b1c3a",
+    accent: "#9b1c3a",
+    caption: "Be Mine",
+    decor: "hearts",
+  },
+  newyear: {
+    bg: "#0b0b1f",
+    border: "#d4af37",
+    accent: "#d4af37",
+    caption: "Happy New Year",
+    decor: "confetti",
+  },
+  formula1: {
+    bg: "#e10600",
+    border: "#0a0a0a",
+    accent: "#ffffff",
+    caption: "Pole Position",
+    decor: "checker",
+  },
+  disney: {
+    bg: "#1a2a6c",
+    border: "#f7c948",
+    accent: "#f7c948",
+    caption: "A Magical Day",
+    decor: "mickey",
+  },
+  stardust: {
+    bg: "#111028",
+    border: "#111028",
+    accent: "#f6c453",
+    caption: "Among the Stars",
+    decor: "stars",
+  },
+  summer: {
+    bg: "#fef3c7",
+    border: "#0d6b6b",
+    accent: "#0d6b6b",
+    caption: "Endless Summer",
+    decor: "palms",
+  },
 };
 
 function playChime() {
@@ -52,7 +112,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 async function renderStrip(shots: string[], frameId: FrameId): Promise<string> {
-  const meta = FRAME_META[frameId];
+  const meta = FRAME_META[frameId] || FRAME_META.classic;
   const W = 600;
   const padX = 46;
   const padTop = 52;
@@ -74,11 +134,12 @@ async function renderStrip(shots: string[], frameId: FrameId): Promise<string> {
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, W - 6, H - 6);
 
+  const isLight = ["classic", "valentine", "summer", "formula1"].includes(frameId);
   const imgs = await Promise.all(shots.map(loadImage));
   for (let i = 0; i < 4; i++) {
     const x = padX;
     const y = padTop + i * (photoH + gap);
-    ctx.fillStyle = meta.decor === "hearts" || frameId === "classic" ? "#e9e6df" : "#1f1d3a";
+    ctx.fillStyle = isLight ? "#e9e6df" : "#1f1d3a";
     ctx.fillRect(x, y, photoW, photoH);
     const img = imgs[i];
     if (img) {
@@ -132,12 +193,79 @@ async function renderStrip(shots: string[], frameId: FrameId): Promise<string> {
     star(W - 26, 24, 6);
     star(20, H - 60, 6);
     star(W - 24, H - 56, 7);
+  } else if (meta.decor === "confetti") {
+    const pieces = [
+      { x: 30, y: 24, w: 6, h: 14, rot: -0.3, c: "#d4af37" },
+      { x: W - 40, y: 36, w: 6, h: 14, rot: 0.4, c: "#ffffff" },
+      { x: 40, y: H - 70, w: 6, h: 14, rot: -0.5, c: "#ffffff" },
+      { x: W - 35, y: H - 60, w: 6, h: 14, rot: 0.6, c: "#d4af37" },
+      { x: 120, y: 28, w: 6, h: 14, rot: 0.2, c: "#e94560" },
+      { x: W - 120, y: H - 50, w: 6, h: 14, rot: -0.4, c: "#5ac8fa" },
+    ];
+    pieces.forEach((p) => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+  } else if (meta.decor === "checker") {
+    const sq = 12;
+    for (let x = 6; x < W - 6; x += sq) {
+      ctx.fillStyle = Math.floor(x / sq) % 2 === 0 ? "#000000" : "#ffffff";
+      ctx.fillRect(x, 6, sq, sq);
+    }
+    const stripY = H - 76;
+    for (let x = 6; x < W - 6; x += sq) {
+      ctx.fillStyle = Math.floor(x / sq) % 2 === 0 ? "#000000" : "#ffffff";
+      ctx.fillRect(x, stripY, sq, sq);
+    }
+  } else if (meta.decor === "mickey") {
+    const mickey = (cx: number, cy: number, r: number) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx - r * 0.85, cy - r * 0.85, r * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx + r * 0.85, cy - r * 0.85, r * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    mickey(26, 28, 8);
+    mickey(W - 26, 28, 7);
+    mickey(24, H - 60, 7);
+    mickey(W - 24, H - 56, 8);
+  } else if (meta.decor === "palms") {
+    const palm = (cx: number, cy: number, s: number) => {
+      ctx.save();
+      ctx.strokeStyle = meta.accent;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy + s, s, -Math.PI * 0.7, -Math.PI * 0.2);
+      ctx.stroke();
+      for (let a = -0.8; a <= 0.8; a += 0.4) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(
+          cx + Math.cos(a - Math.PI / 2) * s * 1.2,
+          cy + Math.sin(a - Math.PI / 2) * s * 1.2,
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+    palm(24, 24, 10);
+    palm(W - 24, 24, 10);
+    palm(24, H - 60, 10);
+    palm(W - 24, H - 60, 10);
   }
 
   ctx.fillStyle = meta.accent;
   ctx.font = "italic 22px Georgia, serif";
   ctx.textAlign = "center";
-  ctx.fillText("Photo Booth", W / 2, H - 44);
+  ctx.fillText(meta.caption, W / 2, H - 44);
   ctx.font = "10px Georgia, serif";
   ctx.fillText(
     new Date()
